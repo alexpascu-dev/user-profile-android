@@ -11,16 +11,14 @@ import okhttp3.logging.HttpLoggingInterceptor
 import android.util.Log
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import com.example.myprofile.BuildConfig
 
 object RetrofitInstance {
 
     lateinit var api: ApiService
         private set
 
-//    private const val BASE_URL = "http://10.0.2.2:5062/"
-
-    // PENTRU OCEAN SERVER
-    private const val BASE_URL = "http://209.38.254.238/"
+    private const val BASE_URL = BuildConfig.BASE_URL
 
     fun init(context: Context) {
         if (::api.isInitialized) return
