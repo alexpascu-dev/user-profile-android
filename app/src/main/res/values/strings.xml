@@ -1,0 +1,39 @@
+<resources>
+
+    <string name="app_name">My Profile</string>
+    <string name="myApp">MyApp</string>
+    <string name="welcome">Welcome</string>
+    <string name="information_login">Please login with your information</string>
+    <string name="username">Username</string>
+    <string name="enter_username">Enter username</string>
+    <string name="password">Password:</string>
+    <string name="enter_password">Enter password</string>
+    <string name="remember_btn">Remember me</string>
+    <string name="password_reset">I forgot my password</string>
+    <string name="login_btn">Login</string>
+    <string name="user_profile">User profile</string>
+    <string name="personal_info">Personal&#10;Information</string>
+    <string name="name">Name:</string>
+    <string name="name_user">Alexandru Pascu</string>
+    <string name="username_second_page">Username:</string>
+    <string name="username_user">alexpascu</string>
+    <string name="email">Email:</string>
+    <string name="enter_email">Enter email</string>
+    <string name="email_user">alex.pascu05@yahoo.com</string>
+
+    <!--    Member since-->
+    <string name="member_since">Member&#10;Since</string>
+    <string name="month_day">Jul 14</string>
+    <string name="year">2025</string>
+
+    <!--    Print button-->
+    <string name="print_btn">Print</string>
+
+    <!--    Logout button-->
+    <string name="logout_btn">Logout</string>
+
+    <!--    Edit profile button-->
+    <string name="edit_btn">Edit profile</string>
+
+
+</resources>
