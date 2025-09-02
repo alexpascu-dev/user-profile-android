@@ -1,6 +1,7 @@
 package com.example.myprofile
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -63,11 +66,10 @@ fun isValidUsername(username: String): Boolean {
 @Composable
 fun LoginScreen(navController: NavHostController) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var usernameError by remember { mutableStateOf(false) }
-    var passwordError by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -81,25 +83,32 @@ fun LoginScreen(navController: NavHostController) {
             LoginCard(
                 username = username,
                 password = password,
+                isLoading = isLoading,
                 onUsernameChange = { value ->
                     username = value
-                    usernameError = false
-                    loginError = null
                                    },
                 onPasswordChange = { value ->
                     password = value
-                    passwordError = false
-                    loginError = null
                                    },
                 onLoginClick = onLoginClick@{
                     val userName = username.trim()
                     val pwd = password
-                    val isUsernameValid = isValidUsername(userName)
-                    val isPasswordValid = pwd.isNotBlank()
 
-                    usernameError = !isUsernameValid
-                    passwordError = !isPasswordValid
-                    if (!isUsernameValid || !isPasswordValid) return@onLoginClick
+                    if (userName.isEmpty() || pwd.isEmpty()) {
+                        Toast.makeText(
+                            context,
+                            "Username and password are required",
+                            Toast.LENGTH_SHORT)
+                            .show()
+                        return@onLoginClick
+                    }
+                    if (!isValidUsername(username)) {
+                        Toast.makeText(
+                            context,
+                            "Invalid credentials",
+                            Toast.LENGTH_SHORT).show()
+                            return@onLoginClick
+                    }
 
                     isLoading = true
                     scope.launch {
@@ -113,30 +122,23 @@ fun LoginScreen(navController: NavHostController) {
                             ).token
                             Log.d("LOGIN", "Login OK, token len=${token.length}")
                             Session.saveToken(token)
-
-//                            RetrofitInstance.api.me()
-
                             navController.navigateAndClear(Screen.UserInfo.route)
-
                         }
                         catch (e: HttpException) {
                             Log.e("LOGIN", "HttpException code=${e.code()} body=${e.response()?.errorBody()?.string()}")
-                            loginError = "HTTP ${e.code()}"
+                            Toast.makeText(context, "Invalid credentials", Toast.LENGTH_LONG).show()
                             Session.clear()
                         }
                         catch (e: Exception) {
                             Log.e("LOGIN", "Unexpected", e)
-                            loginError = "Unexpected: ${e.message}"
+                            Toast.makeText(context, "Unexpected error: ${e.message ?: "unknown"}", Toast.LENGTH_LONG).show()
                             Session.clear()
                         }
-
                         finally {
                             isLoading = false
                         }
                     }
-                },
-                usernameError = usernameError,
-                passwordError = passwordError
+                }
             )
         }
     }
@@ -205,11 +207,10 @@ fun LoginHeader() {
 fun LoginCard(
     username: String,
     password: String,
+    isLoading: Boolean,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
-    usernameError: Boolean,
-    passwordError: Boolean
 ) {
 
     Card(
@@ -267,15 +268,6 @@ fun LoginCard(
                     .fillMaxWidth()
                     .padding(top = 4.dp)
             )
-            if (usernameError) {
-                Text(
-                    text = "Username invalid",
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.SansSerif,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
 
 //                Password label
             Text(
@@ -304,25 +296,25 @@ fun LoginCard(
                     .fillMaxWidth()
                     .padding(top = 4.dp)
             )
-            if (passwordError) {
-                Text(
-                    text = "Password invalid",
-                    color = Color.Red,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.SansSerif,
-                    modifier = Modifier.padding(4.dp)
+
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(18.dp)
+                        .size(40.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            } else {
+                PrimaryButton(
+                    text = stringResource(R.string.login_btn),
+                    onClick = onLoginClick,
+                    modifier = Modifier
+                        .padding(18.dp)
+                        .width(180.dp)
+                        .height(60.dp)
+                        .align(Alignment.CenterHorizontally)
                 )
             }
-
-            PrimaryButton(
-                text = stringResource(R.string.login_btn),
-                onClick = onLoginClick,
-                modifier = Modifier
-                    .padding(18.dp)
-                    .width(180.dp)
-                    .height(60.dp)
-                    .align(Alignment.CenterHorizontally)
-            )
         }
     }
 }

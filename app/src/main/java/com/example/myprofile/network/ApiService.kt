@@ -17,6 +17,6 @@ interface ApiService {
     @GET("api/users/me")
     suspend fun me(): User
 
-    @PUT("api/users")
+    @PUT("api/users/update")
     suspend fun editUser(@Body body: UpdateUserDto)
 }

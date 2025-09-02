@@ -16,12 +16,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -36,18 +41,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.example.myprofile.network.auth.Jwt
-import com.example.myprofile.network.auth.Session
 import com.example.myprofile.models.UpdateUserDto
 import com.example.myprofile.models.User
+import com.example.myprofile.network.RetrofitInstance
+import com.example.myprofile.network.auth.Jwt
+import com.example.myprofile.network.auth.Session
 import com.example.myprofile.ui.components.MemberSinceRow
 import com.example.myprofile.ui.components.PrimaryButton
 import com.example.myprofile.ui.components.UserInfoRow
 import com.example.myprofile.ui.theme.MyPrimary
 import com.example.myprofile.ui.theme.MySecondary
-import androidx.navigation.NavHostController
-import com.example.myprofile.ui.theme.UserInfoBackground
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 @Preview(showSystemUi = true)
 @Composable
@@ -63,7 +70,6 @@ fun UserInfoScreen(
     navController: NavHostController,
     onLogout: () -> Unit
 ) {
-
     Box(modifier = Modifier.fillMaxSize()) {
         UserInfoBackground {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -151,62 +157,65 @@ fun UserInfoHeader() {
     }
 }
 
-//fun saveChanges(
-//    dto: UpdateUserDto,
-//    onSuccess: () -> Unit,
-//    onError: (Throwable) -> Unit
-//) {
-//    RetrofitInstance.apiService.editUser(dto)
-//        .enqueue(object : Callback<Void> {
-//            override fun onResponse(call: Call<Void>, response: Response<Void>) {
-//                if (response.isSuccessful) {
-//                    onSuccess()
-//                }
-//                else {
-//                    onError(Exception("Error code ${response.code()}"))
-//                }
-//            }
-//            override fun onFailure(call: Call<Void>, throwable: Throwable) {
-//                onError(throwable)
-//            }
-//        })
-//}
-
 @Composable
 fun UserInfoCard(
     onLogout: () -> Unit
 ) {
-    val userState = remember { mutableStateOf<User?>(null) }
-    val editMode = remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    val firstNameState = remember { mutableStateOf("") }
-    val lastNameState = remember { mutableStateOf("") }
-    val usernameState = remember { mutableStateOf("") }
-    val emailState = remember { mutableStateOf("") }
-    val isActiveState = remember { mutableStateOf(true) }
-    val roleState = remember { mutableStateOf("") }
+    var user by remember { mutableStateOf<User?>(null) }
+    var editMode by remember { mutableStateOf(false) }
 
-//    fun loadUser() {
-//        RetrofitInstance.apiService.getUserById(userId)
-//            .enqueue(object : Callback<User> {
-//            override fun onResponse(call: Call<User>, response: Response<User>) {
-//                response.body()?.let { user ->
-//                    userState.value = user
-//                    firstNameState.value = user.firstName
-//                    lastNameState.value = user.lastName
-//                    usernameState.value = user.userName
-//                    emailState.value = user.email
-//                    isActiveState.value = true
-//                }
-//            }
-//            override fun onFailure(call: Call<User>, throwable: Throwable) {
-//                Log.e("API","GetUser Error: ${throwable.message}")
-//            }
-//        })
-//    }
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var isActive by remember { mutableStateOf(true) }
+    var role by remember { mutableStateOf("") }
+
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    fun applyDataToFields(user: User) {
+        firstName = user.firstName
+        lastName = user.lastName
+        username = user.userName
+        email = user.email
+        isActive = user.isActive
+        role = user.role
+    }
+
+    fun loadUser() {
+        scope.launch {
+            val token = Session.token()
+            if (token.isNullOrBlank() || Jwt.isExpired(token)) {
+                Session.clear()
+                onLogout()
+                return@launch
+            }
+            isLoading = true
+            error = null
+            try {
+                val response = RetrofitInstance.api.me()
+                user = response
+                applyDataToFields(response)
+            } catch (e: HttpException) {
+                if (e.code() == 401) {
+                    Session.clear()
+                    onLogout()
+                } else {
+                    error = "Error ${e.code()}"
+                }
+            } catch (e: Exception) {
+                error = "Load failed ${e.message}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
-//        loadUser()
+        loadUser()
     }
 
     Card(
@@ -239,22 +248,32 @@ fun UserInfoCard(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            userState.value?.let { user ->
-                if (!editMode.value) {
+            if (isLoading) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(12.dp))
+            }
+            if (error != null) {
+                Text(error!!, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(12.dp))
+            }
+
+            user?.let { u ->
+                if (!editMode) {
                     //VIEW MODE
-                    UserInfoRow(label = "Name", value = user.name)
-                    UserInfoRow(label = "Username", value = user.userName)
-                    UserInfoRow(label = "Email", value = user.email)
+                    UserInfoRow(label = "Name", value = "${u.firstName} ${u.lastName}")
+                    UserInfoRow(label = "Username", value = u.userName)
+                    UserInfoRow(label = "Email", value = u.email)
+                    UserInfoRow(label = "Role", value = u.role)
                     MemberSinceRow(
-                        monthAndDay = user.monthAndDay,
-                        year = user.year
+                        monthAndDay = u.monthAndDay,
+                        year = u.year
                     )
 
                     Spacer(modifier = Modifier.height(30.dp))
 
                     PrimaryButton(
                         text = stringResource(R.string.edit_btn),
-                        onClick = { editMode.value = true },
+                        onClick = { editMode = true },
                         color = MyPrimary,
                         modifier = Modifier
                             .height(55.dp)
@@ -263,8 +282,8 @@ fun UserInfoCard(
                 } else {
                     // EDIT MODE
                     TextField(
-                        value = firstNameState.value,
-                        onValueChange = { firstNameState.value = it },
+                        value = firstName,
+                        onValueChange = { firstName = it },
                         label = { Text("First Name") },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
@@ -277,8 +296,8 @@ fun UserInfoCard(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextField(
-                        value = lastNameState.value,
-                        onValueChange = { lastNameState.value = it },
+                        value = lastName,
+                        onValueChange = { lastName = it },
                         label = { Text("Last Name") },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
@@ -291,8 +310,8 @@ fun UserInfoCard(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextField(
-                        value = usernameState.value,
-                        onValueChange = { usernameState.value = it },
+                        value = username,
+                        onValueChange = { username = it },
                         label = { Text("Username") },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
@@ -305,8 +324,8 @@ fun UserInfoCard(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextField(
-                        value = emailState.value,
-                        onValueChange = { emailState.value = it },
+                        value = email,
+                        onValueChange = { email = it },
                         label = { Text("Email") },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
@@ -324,24 +343,30 @@ fun UserInfoCard(
                         PrimaryButton(
                             text = "Save",
                             onClick = {
-                                val dto = UpdateUserDto(
-                                    userId = user.userId,
-                                    userName = usernameState.value,
-                                    email = emailState.value,
-                                    firstName = firstNameState.value,
-                                    lastName = lastNameState.value,
-                                    isActive = isActiveState.value
-                                )
-//                                saveChanges(
-//                                    dto,
-//                                    onSuccess = {
-//                                        loadUser()
-//                                        editMode.value = false
-//                                    },
-//                                    onError = { e ->
-//                                        Log.e("Update", e.message ?: "")
-//                                    }
-//                                )
+                                scope.launch {
+                                    isLoading = true
+                                    error = null
+                                    try {
+                                        val dto = UpdateUserDto(
+                                            userId = u.userId,
+                                            userName = username,
+                                            email = email,
+                                            firstName = firstName,
+                                            lastName = lastName,
+                                            isActive = isActive
+                                        )
+                                        RetrofitInstance.api.editUser(dto)
+                                        loadUser()
+                                        editMode = false
+                                    } catch (e: HttpException) {
+                                        if (e.code() == 401) onLogout()
+                                        else error = "Error ${e.code()}"
+                                    } catch (e: Exception) {
+                                        error = "Update failed ${e.message}"
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
                             },
                             color = MyPrimary,
                             modifier = Modifier
@@ -352,13 +377,8 @@ fun UserInfoCard(
                         PrimaryButton(
                             text = "Cancel",
                             onClick = {
-                                userState.value?.let { user ->
-                                    firstNameState.value = user.firstName
-                                    lastNameState.value = user.lastName
-                                    usernameState.value = user.userName
-                                    emailState.value = user.email
-                                }
-                                editMode.value = false
+                                user?.let { applyDataToFields(it) }
+                                editMode = false
                             },
                             color = Color.Gray,
                             modifier = Modifier.size(110.dp, 55.dp)
