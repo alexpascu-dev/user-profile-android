@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,6 +41,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -52,6 +55,8 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import com.example.myprofile.ui.navigation.Screen
 import com.example.myprofile.ui.navigation.navigateAndClear
+import com.example.myprofile.ui.responsive.UiMetrics
+import com.example.myprofile.ui.responsive.WithUiMetrics
 
 @Preview(showSystemUi = true)
 @Composable
@@ -70,76 +75,87 @@ fun LoginScreen(navController: NavHostController) {
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var loginError by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    LoginBackground {
-        Column (
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            LoginHeader()
-            Spacer(modifier = Modifier.height(100.dp))
-            LoginCard(
-                username = username,
-                password = password,
-                isLoading = isLoading,
-                onUsernameChange = { value ->
-                    username = value
-                                   },
-                onPasswordChange = { value ->
-                    password = value
-                                   },
-                onLoginClick = onLoginClick@{
-                    val userName = username.trim()
-                    val pwd = password
+    WithUiMetrics { m ->
+        LoginBackground(contentPadding = m.outerPadding) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                LoginHeader(m)
+                Spacer(modifier = Modifier.height(m.spacerHeaderCard))
+                LoginCard(
+                    metrics = m,
+                    username = username,
+                    password = password,
+                    isLoading = isLoading,
+                    onUsernameChange = { value ->
+                        username = value
+                    },
+                    onPasswordChange = { value ->
+                        password = value
+                    },
+                    onLoginClick = onLoginClick@{
+                        val userName = username.trim()
+                        val pwd = password.replace("\\s".toRegex(), "")
 
-                    if (userName.isEmpty() || pwd.isEmpty()) {
-                        Toast.makeText(
-                            context,
-                            "Username and password are required",
-                            Toast.LENGTH_SHORT)
-                            .show()
-                        return@onLoginClick
-                    }
-                    if (!isValidUsername(username)) {
-                        Toast.makeText(
-                            context,
-                            "Invalid credentials",
-                            Toast.LENGTH_SHORT).show()
+                        if (userName.isEmpty() || pwd.isEmpty()) {
+                            Toast.makeText(
+                                context,
+                                "Username and password are required",
+                                Toast.LENGTH_SHORT
+                            )
+                                .show()
                             return@onLoginClick
-                    }
+                        }
+                        if (!isValidUsername(username)) {
+                            Toast.makeText(
+                                context,
+                                "Invalid credentials",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@onLoginClick
+                        }
 
-                    isLoading = true
-                    scope.launch {
-                        try {
-                            Log.d("LOGIN", "Submitting login for $userName")
-                            val token = RetrofitInstance.api.loginUser(
-                                LoginDto(
-                                    userName,
-                                    pwd
+                        isLoading = true
+                        scope.launch {
+                            try {
+                                Log.d("LOGIN", "Submitting login for $userName")
+                                val token = RetrofitInstance.api.loginUser(
+                                    LoginDto(
+                                        userName,
+                                        pwd
+                                    )
+                                ).token
+                                Log.d("LOGIN", "Login OK, token len=${token.length}")
+                                Session.saveToken(token)
+                                navController.navigateAndClear(Screen.UserInfo.route)
+                            } catch (e: HttpException) {
+                                Log.e(
+                                    "LOGIN",
+                                    "HttpException code=${e.code()} body=${
+                                        e.response()?.errorBody()?.string()
+                                    }"
                                 )
-                            ).token
-                            Log.d("LOGIN", "Login OK, token len=${token.length}")
-                            Session.saveToken(token)
-                            navController.navigateAndClear(Screen.UserInfo.route)
-                        }
-                        catch (e: HttpException) {
-                            Log.e("LOGIN", "HttpException code=${e.code()} body=${e.response()?.errorBody()?.string()}")
-                            Toast.makeText(context, "Invalid credentials", Toast.LENGTH_LONG).show()
-                            Session.clear()
-                        }
-                        catch (e: Exception) {
-                            Log.e("LOGIN", "Unexpected", e)
-                            Toast.makeText(context, "Unexpected error: ${e.message ?: "unknown"}", Toast.LENGTH_LONG).show()
-                            Session.clear()
-                        }
-                        finally {
-                            isLoading = false
+                                Toast.makeText(context, "Invalid credentials", Toast.LENGTH_LONG)
+                                    .show()
+                                Session.clear()
+                            } catch (e: Exception) {
+                                Log.e("LOGIN", "Unexpected", e)
+                                Toast.makeText(
+                                    context,
+                                    "Unexpected error: ${e.message ?: "unknown"}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                Session.clear()
+                            } finally {
+                                isLoading = false
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -147,7 +163,7 @@ fun LoginScreen(navController: NavHostController) {
 //        Login Background
 
 @Composable
-fun LoginBackground(content: @Composable () -> Unit) {
+fun LoginBackground(contentPadding: Dp, content: @Composable () -> Unit) {
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -179,7 +195,7 @@ fun LoginBackground(content: @Composable () -> Unit) {
 //           Login Header
 
 @Composable
-fun LoginHeader() {
+fun LoginHeader(m: UiMetrics) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -188,12 +204,11 @@ fun LoginHeader() {
             painter = painterResource(R.drawable.account_image),
             contentDescription = "Account icon",
             modifier = Modifier
-                .size(100.dp)
-                .padding(bottom = 16.dp)
+                .size(m.headerImageSize)
         )
         Text(
             text = stringResource(id = R.string.myApp),
-            fontSize = 28.sp,
+            fontSize = m.titleSize,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.SansSerif,
             color = Color.White
@@ -205,6 +220,7 @@ fun LoginHeader() {
 
 @Composable
 fun LoginCard(
+    metrics: UiMetrics,
     username: String,
     password: String,
     isLoading: Boolean,
@@ -216,20 +232,20 @@ fun LoginCard(
     Card(
         modifier = Modifier
             .alpha(0.9f)
-            .padding(start = 26.dp, end = 26.dp, bottom = 70.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(35.dp),
+        shape = RoundedCornerShape(metrics.cardCorner),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
-            modifier = Modifier.padding(28.dp),
+            modifier = Modifier.padding(metrics.cardInnerPadding),
             verticalArrangement = Arrangement.Center
         )
         {
 //                Welcome text
             Text(
                 text = "Welcome",
-                fontSize = 32.sp,
+                fontSize = (metrics.titleSize.value + 4).sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.SansSerif,
                 color = MyPrimary,
@@ -239,33 +255,37 @@ fun LoginCard(
             Text(
                 text = stringResource(id = R.string.information_login),
                 color = Color.Gray,
-                fontSize = 14.sp,
+                fontSize = metrics.infoTextSize,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 //                Username label
             Text(
                 text = stringResource(R.string.username),
+                fontSize = metrics.labelTextSize,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.SansSerif,
                 color = Color.Gray,
                 modifier = Modifier
-                    .padding(top = 16.dp)
+                    .padding(top = 12.dp)
                     .alpha(0.7f)
             )
 //                Username input
             OutlinedTextField(
                 value = username,
                 onValueChange = onUsernameChange,
-                label = { Text(stringResource(R.string.enter_username)) },
+                singleLine = true,
+                label = { Text(stringResource(R.string.enter_username),
+                        fontSize = metrics.infoTextSize) },
                 trailingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.account_image),
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(metrics.smallIconSize)
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = metrics.fieldMinHeight)
                     .padding(top = 4.dp)
             )
 
@@ -274,44 +294,51 @@ fun LoginCard(
                 text = stringResource(R.string.password),
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.SansSerif,
+                fontSize = metrics.labelTextSize,
                 color = Color.Gray,
                 modifier = Modifier
-                    .padding(top = 16.dp)
+                    .padding(top = 12.dp)
                     .alpha(0.7f)
             )
 //                Password input
             OutlinedTextField(
                 value = password,
-                onValueChange = onPasswordChange,
-                label = { Text(stringResource(R.string.enter_password)) },
+                onValueChange = { raw ->
+                    val sanitized = raw.replace("\\s".toRegex(), "")
+                    onPasswordChange(sanitized)
+                },
+                singleLine = true,
+                label = { Text(stringResource(R.string.enter_password), fontSize = metrics.infoTextSize) },
                 trailingIcon = {
                     Icon(
                         painter = painterResource(R.drawable.password_icon),
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(metrics.smallIconSize)
                     )
                 },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(metrics.fieldMinHeight)
                     .padding(top = 4.dp)
             )
 
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier
-                        .padding(18.dp)
-                        .size(40.dp)
+                        .padding(16.dp)
+                        .size(32.dp)
                         .align(Alignment.CenterHorizontally)
                 )
             } else {
+                val base = if (metrics.buttonFullWidth) Modifier.fillMaxWidth()
+                else Modifier.width(180.dp)
                 PrimaryButton(
                     text = stringResource(R.string.login_btn),
                     onClick = onLoginClick,
-                    modifier = Modifier
-                        .padding(18.dp)
-                        .width(180.dp)
-                        .height(60.dp)
+                    modifier = base
+                        .defaultMinSize(minHeight = metrics.buttonMinHeight)
+                        .padding(top = 16.dp)
                         .align(Alignment.CenterHorizontally)
                 )
             }
