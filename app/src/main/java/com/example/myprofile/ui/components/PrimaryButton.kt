@@ -1,5 +1,9 @@
 package com.example.myprofile.ui.components
 
+import android.R.attr.fontFamily
+import android.R.attr.fontWeight
+import android.R.attr.text
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -15,23 +19,33 @@ import com.example.myprofile.ui.theme.MyPrimary
 
 @Composable
 fun PrimaryButton(
-    text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = MyPrimary
+    color: Color? = MyPrimary,
+    shape: RoundedCornerShape? = RoundedCornerShape(30.dp),
+    text: String? = null,
+    icon: (@Composable (() -> Unit))? = null,
+    contentPadding: PaddingValues? = null
 ) {
     Button(
         onClick = onClick,
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = color),
-        shape = RoundedCornerShape(30.dp)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color ?: Color.Transparent,
+            contentColor = if (color == null) Color.Unspecified else Color.White
+            ),
+        shape = shape ?: RoundedCornerShape(0.dp),
+        contentPadding = contentPadding ?: ButtonDefaults.ContentPadding
     ) {
-        Text(
-            text = text,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = FontFamily.SansSerif,
-            color = Color.White
-        )
+        when {
+            icon != null -> icon()
+            text != null -> Text(
+                text = text,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.SansSerif,
+                color = if (color == null) Color.Unspecified else Color.White
+            )
+        }
     }
 }

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -56,7 +55,7 @@ import com.example.myprofile.models.User
 import com.example.myprofile.network.RetrofitInstance
 import com.example.myprofile.network.auth.Jwt
 import com.example.myprofile.network.auth.Session
-import com.example.myprofile.ui.components.BottomActions
+import com.example.myprofile.ui.components.BottomActionButtons
 import com.example.myprofile.ui.components.MemberSinceRow
 import com.example.myprofile.ui.components.PrimaryButton
 import com.example.myprofile.ui.components.UserInfoRow
@@ -65,7 +64,11 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import com.example.myprofile.ui.responsive.WithUiMetrics
 import com.example.myprofile.ui.responsive.UiMetrics
-import com.example.myprofile.ui.theme.UserInfoBackground
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import androidx.compose.foundation.layout.size
+import com.example.myprofile.ui.components.BarcodeScanner
+import com.example.myprofile.ui.components.SettingsWheelButton
 
 @Preview(showSystemUi = true)
 @Composable
@@ -83,12 +86,32 @@ fun UserInfoScreen(
 ) {
     WithUiMetrics { m ->
         var editMode by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        val barcodeScanner = remember { BarcodeScanner(context) }
 
         Scaffold(
             bottomBar = {
                 if (!editMode) {
-                    BottomActions(
+                    BottomActionButtons(
                         m = m,
+                        onScan = {
+                            barcodeScanner.ensureInstalled(
+                                onReady = {
+                                    barcodeScanner.startScan(
+                                        onResult = { code ->
+                                            Toast.makeText(context, "Scanned: $code", Toast.LENGTH_SHORT).show()
+                                            },
+                                        onCancel = {},
+                                        onError = { e ->
+                                            Toast.makeText(context, "Scan error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                },
+                                onError = { e ->
+                                    Toast.makeText(context, "Install failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        },
                         onPrint = { /* TODO */ },
                         onLogout = onLogout,
                     )
@@ -102,7 +125,10 @@ fun UserInfoScreen(
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        UserInfoHeader(m)
+                        UserInfoHeader(
+                            m = m,
+                            onSettings = { }
+                        )
                         Spacer(Modifier.height(m.spacerHeaderCard))
 
                         Column(
@@ -157,7 +183,10 @@ fun UserInfoBackground(contentPadding: Dp, content: @Composable () -> Unit) {
 }
 
 @Composable
-fun UserInfoHeader(m: UiMetrics) {
+fun UserInfoHeader(
+    m: UiMetrics,
+    onSettings: () -> Unit
+) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Column(Modifier.fillMaxWidth()) {
@@ -185,6 +214,15 @@ fun UserInfoHeader(m: UiMetrics) {
             fontFamily = FontFamily.SansSerif,
             color = Color.White,
             modifier = Modifier.align(Alignment.Center)
+        )
+
+        SettingsWheelButton(
+            onSettings = onSettings,
+            iconSize = if (m.buttonFullWidth) 32.dp else 42.dp,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 20.dp)
+                .size(48.dp)
         )
     }
 }

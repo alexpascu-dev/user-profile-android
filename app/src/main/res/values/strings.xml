@@ -26,6 +26,9 @@
     <string name="month_day">Jul 14</string>
     <string name="year">2025</string>
 
+    <!--    Scan button-->
+    <string name="scan_btn">Scan</string>
+
     <!--    Print button-->
     <string name="print_btn">Print</string>
 

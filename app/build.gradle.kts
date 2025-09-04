@@ -78,4 +78,8 @@ dependencies {
 
     // JWT decode
     implementation(libs.jwtdecode)
+
+    // Scan
+    implementation(libs.google.scanner)
+    implementation(libs.play.services)
 }
