@@ -9,7 +9,7 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScanner
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
-class BarcodeScanner(private val context: Context) {
+class BarcodeScanMobile(private val context: Context) {
 
     private val options = GmsBarcodeScannerOptions.Builder()
         .setBarcodeFormats(

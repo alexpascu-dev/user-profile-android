@@ -38,5 +38,10 @@
     <!--    Edit profile button-->
     <string name="edit_btn">Edit profile</string>
 
+    <!--    Zebra-->
+    <string name="activity_intent_filter_action">com.zebra.barcode-scan.ACTION</string>
+    <string name="datawedge_intent_key_data">com.symbol.datawedge.data_string</string>
+    <string name="datawedge_intent_action">com.symbol.datawedge.api.ACTION</string>
+    <string name="datawedge_intent_trigger">com.symbol.datawedge.api.SOFT_SCAN_TRIGGER</string>
 
 </resources>

@@ -1,5 +1,6 @@
 package com.example.myprofile
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -67,7 +68,10 @@ import com.example.myprofile.ui.responsive.UiMetrics
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.foundation.layout.size
-import com.example.myprofile.ui.components.BarcodeScanner
+import androidx.compose.runtime.DisposableEffect
+import com.example.myprofile.ui.components.BarcodeScanHelper
+import com.example.myprofile.ui.components.BarcodeScanMobile
+import com.example.myprofile.ui.components.hasDataWedge
 import com.example.myprofile.ui.components.SettingsWheelButton
 
 @Preview(showSystemUi = true)
@@ -78,7 +82,6 @@ fun UserInfoPreview() {
         onLogout = {}
     )
 }
-
 @Composable
 fun UserInfoScreen(
     navController: NavHostController,
@@ -86,32 +89,86 @@ fun UserInfoScreen(
 ) {
     WithUiMetrics { m ->
         var editMode by remember { mutableStateOf(false) }
+
         val context = LocalContext.current
-        val barcodeScanner = remember { BarcodeScanner(context) }
+        val scannedCode = remember { mutableStateOf<String?>(null) }
+
+        // Detect if we have a ZEBRA Scanner
+        val useDataWedge = remember { hasDataWedge(context) }
+
+
+        // Initialize BarcodeScanHelper
+        val zebraHelper = remember {
+            BarcodeScanHelper(
+                context,
+                object : BarcodeScanHelper.BarcodeScanListener {
+                    override fun onBarcodeScanned(data: String) {
+                        scannedCode.value = data
+                        Log.d("SCANNED_CODE", "Scanned code: $data")
+                        Toast.makeText(context, "Scanned: $data", Toast.LENGTH_SHORT).show()
+                    }
+
+                    override fun onError(error: String) {
+                        Toast.makeText(context, "Scan error: $error", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
+
+        val mlKit = remember { BarcodeScanMobile(context) }
+
+        // Register/unregister receiver
+        DisposableEffect(useDataWedge) {
+            if (useDataWedge) {
+                zebraHelper.registerReceiver()
+            }
+            onDispose {
+                if (useDataWedge) {
+                    zebraHelper.unregisterReceiver()
+                }
+            }
+        }
+
+        val onScanClick: () -> Unit = remember(useDataWedge) {
+            {
+                if (useDataWedge) {
+                    // Zebra: trigger hardware scan
+                    zebraHelper.triggerScan()
+                } else {
+                    // Telefon: ML Kit camera
+                    mlKit.ensureInstalled(
+                        onReady = {
+                            mlKit.startScan(
+                                onResult = { code ->
+                                    if (!code.isNullOrBlank()) {
+                                        scannedCode.value = code
+                                        Log.d("SCANNED_CODE", "Cod scanat (Camera): $code")
+                                        Toast.makeText(context, "Scanned: $code", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                onCancel = {
+                                    // opțional
+                                    Log.d("SCANNED_CODE", "Scan anulat")
+                                },
+                                onError = { e ->
+                                    Toast.makeText(context, "Scan error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        },
+                        onError = { e ->
+                            Toast.makeText(context, "Module install failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+            }
+        }
 
         Scaffold(
             bottomBar = {
                 if (!editMode) {
                     BottomActionButtons(
                         m = m,
-                        onScan = {
-                            barcodeScanner.ensureInstalled(
-                                onReady = {
-                                    barcodeScanner.startScan(
-                                        onResult = { code ->
-                                            Toast.makeText(context, "Scanned: $code", Toast.LENGTH_SHORT).show()
-                                            },
-                                        onCancel = {},
-                                        onError = { e ->
-                                            Toast.makeText(context, "Scan error: ${e.message}", Toast.LENGTH_SHORT).show()
-                                        }
-                                    )
-                                },
-                                onError = { e ->
-                                    Toast.makeText(context, "Install failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        },
+                        onScan = onScanClick,
                         onPrint = { /* TODO */ },
                         onLogout = onLogout,
                     )
@@ -120,16 +177,19 @@ fun UserInfoScreen(
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
                 UserInfoBackground(contentPadding = m.outerPadding) {
+
                     Column(
-                        Modifier
+                        modifier = Modifier
                             .fillMaxSize()
-                            .padding(innerPadding)
+                            .padding(innerPadding),
                     ) {
                         UserInfoHeader(
                             m = m,
                             onSettings = { }
                         )
+
                         Spacer(Modifier.height(m.spacerHeaderCard))
+                        Spacer(Modifier.height(8.dp))
 
                         Column(
                             Modifier
@@ -143,6 +203,15 @@ fun UserInfoScreen(
                                 onEditModeChange = { editMode = it },
                                 onLogout = onLogout
                             )
+
+                            // Show last scanned code
+                            Text(
+                                text = "Last code: ${scannedCode.value ?: "-"}",
+                                color = Color.White,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
                             Spacer(Modifier.height(8.dp))
                         }
                     }
