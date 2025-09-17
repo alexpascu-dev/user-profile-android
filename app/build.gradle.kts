@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -14,7 +16,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField(
@@ -43,6 +44,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += setOf("META-INF/INDEX.LIST", "META-INF/*.kotlin_module")
+        }
     }
 }
 
@@ -82,4 +89,9 @@ dependencies {
     // Scan
     implementation(libs.google.scanner)
     implementation(libs.play.services)
+
+    //Print
+    implementation(files("libs/ZSDK_ANDROID_API.jar"))
+    implementation(files("libs/ZSDK_ANDROID_BTLE.jar"))
+
 }
