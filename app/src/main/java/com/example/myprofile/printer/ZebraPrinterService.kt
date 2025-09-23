@@ -275,22 +275,6 @@ class ZebraPrinterService(private val context: Context) {
         }
     }
 
-    // Test print function to help debug
-    suspend fun printTestLabel(): Boolean {
-        val testZpl = """
-            ^XA
-            ^PW$LABEL_WIDTH_DOTS
-            ^LL$LABEL_HEIGHT_DOTS
-            ^LH0,0
-            ^FO50,30^A0N,30,30^FDTest Print^FS
-            ^FO50,70^A0N,20,20^FDZQ520 Connected^FS
-            ^FO50,110^A0N,18,18^FD${getCurrentDateTime()}^FS
-            ^XZ
-        """.trimIndent()
-
-        return printZpl(testZpl)
-    }
-
     private fun getCurrentDateTime(): String {
         val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
         return sdf.format(java.util.Date())

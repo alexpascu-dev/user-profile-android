@@ -20,17 +20,17 @@ fun PrinterSettingsDialog(
     val macRegex = remember { Regex("^[0-9A-F]{2}(:[0-9A-F]{2}){5}\$") }
 
     fun formatMac(raw: String): String {
-        // 1) păstrează doar hex, uppercase
+        // 1) Keep just hex, uppercase
         val hex = raw.filter { it.isLetterOrDigit() }
             .uppercase()
             .filter { it in "0123456789ABCDEF" }
             .take(12) // max 12 hex (6 octeți)
 
-        // 2) inserează „:” din 2 în 2
+        // 2) Insert „:” from 2 to 2
         return hex.chunked(2).joinToString(":")
     }
 
-    // calcul poziție cursor: mapează indexul de hex la indexul în string-ul cu „:”
+    // calculate cursor position: map hex index to string index with ":"
     fun hexIndexToFormattedPos(hexIdx: Int): Int {
         val colonsBefore = (hexIdx / 2).coerceAtMost(5)
         return hexIdx + colonsBefore
@@ -39,7 +39,7 @@ fun PrinterSettingsDialog(
     fun formatMacInput(old: TextFieldValue, newVal: TextFieldValue): TextFieldValue {
         val formatted = formatMac(newVal.text)
 
-        // câte caractere hex erau înainte de noul cursor
+        // how many hex characters were before the new cursor
         val hexBeforeCursor = newVal.text
             .take(newVal.selection.end.coerceAtMost(newVal.text.length))
             .filter { it.isLetterOrDigit() }
@@ -58,10 +58,10 @@ fun PrinterSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Setări imprimantă") },
+        title = { Text("Printer settings") },
         text = {
             Column {
-                Text("Introdu MAC-ul imprimantei Zebra (se formatează automat)")
+                Text("Enter the MAC address of your Zebra printer (it will be automatically formatted)")
                 OutlinedTextField(
                     value = macTf,
                     onValueChange = {
@@ -78,14 +78,14 @@ fun PrinterSettingsDialog(
             TextButton(onClick = {
                 val mac = macTf.text
                 if (!macRegex.matches(mac)) {
-                    macError = "Format MAC invalid (ex: AA:BB:CC:DD:EE:FF)"
+                    macError = "MAC Format invalid (ex: AA:BB:CC:DD:EE:FF)"
                 } else {
-                    onSaveMac(mac) // deja în format corect
+                    onSaveMac(mac) // Already in correct format
                 }
-            }) { Text("Salvează & Conectează") }
+            }) { Text("Save & Connect") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anulează") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }

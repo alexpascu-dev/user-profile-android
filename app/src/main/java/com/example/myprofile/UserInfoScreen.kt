@@ -44,9 +44,7 @@ import com.example.myprofile.ui.responsive.UiMetrics
 import com.example.myprofile.ui.theme.MyPrimary
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import androidx.compose.ui.unit.width
 import com.example.myprofile.printer.ZplFactory
-import com.example.myprofile.ui.theme.UserInfoBackground
 import kotlinx.coroutines.delay
 
 @Preview(showSystemUi = true)
@@ -205,7 +203,7 @@ fun UserInfoScreen(
                             scannedCode = scannedCode,
                             saveAndConnect = { normalizedMac ->
                                 scope.launch {
-                                    // save MAC â†’ pair â†’ connect
+                                    // save MAC at pair and connect
                                     val saved = runCatching {
                                         RetrofitInstance.api.savePrinterMac(SavePrinterMacDto(normalizedMac))
                                     }.isSuccess

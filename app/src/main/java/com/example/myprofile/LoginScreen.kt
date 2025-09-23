@@ -65,7 +65,7 @@ fun LoginScreenPreview() {
 }
 
 fun isValidUsername(username: String): Boolean {
-    return username.length >= 3 && username.matches(Regex("^[a-zA-Z0-9_]+$"))
+    return username.length >= 3 && username.matches(Regex("^[a-zA-Z0-9_-]+$"))
 }
 
 @Composable

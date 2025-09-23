@@ -12,14 +12,21 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.myprofile.R
 import com.example.myprofile.ui.responsive.UiMetrics
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 @Composable
 fun BottomActionButtons(
@@ -29,10 +36,37 @@ fun BottomActionButtons(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     val basePad = modifier
         .fillMaxWidth()
         .windowInsetsPadding(WindowInsets.navigationBars)
         .padding(horizontal = m.outerPadding, vertical = 12.dp)
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Confirm logout") },
+            text = { Text("Are you sure you want to logout?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (m.buttonFullWidth) {
         // Zebra
@@ -84,7 +118,7 @@ fun BottomActionButtons(
 
             PrimaryButton(
 //                text = stringResource(R.string.logout_btn),
-                onClick = onLogout,
+                onClick = { showLogoutDialog = true },
                 color = null,
                 shape = null,
                 contentPadding = PaddingValues(10.dp),
@@ -144,7 +178,7 @@ fun BottomActionButtons(
             )
 
             PrimaryButton(
-                onClick = onLogout,
+                onClick = { showLogoutDialog = true },
                 color = null,
                 shape = null,
                 modifier = phoneBtnMod,

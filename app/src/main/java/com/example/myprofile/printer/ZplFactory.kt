@@ -46,43 +46,6 @@ object ZplFactory {
 """.trimIndent()
     }
 
-    // Simple test label for connection verification
-    fun testLabel(): String = """
-^XA
-^PW$LABEL_WIDTH_DOTS
-^LL$LABEL_HEIGHT_DOTS
-^LH0,0
-^LS0
-
-^CF0,24
-^FO50,30^FDTest Print^FS
-
-^CF0,20
-^FO50,60^FDZQ520 OK^FS
-
-^CF0,16
-^FO30,90^FDConnection Test^FS
-
-^CF0,14
-^FO30,120^FD${getCurrentDateTime()}^FS
-
-^BY2,2,40
-^FO80,150^BCN,40,Y,N,N
-^FDTEST123^FS
-
-^PQ1,0,1,Y
-^XZ
-""".trimIndent()
-
-    // Minimal debug label to test basic printing
-    fun minimalTestLabel(): String = """
-^XA
-^PW$LABEL_WIDTH_DOTS
-^LL$LABEL_HEIGHT_DOTS
-^FO50,50^A0N,30,30^FDTEST^FS
-^XZ
-""".trimIndent()
-
     private fun truncateText(text: String, maxLength: Int): String {
         return if (text.length <= maxLength) text else text.take(maxLength - 3) + "..."
     }

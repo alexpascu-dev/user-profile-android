@@ -34,8 +34,7 @@ object Jwt {
     }
 
     private fun decodeBase64UrlToJson(base64Url: String): JSONObject {
-        val bytes = Base64.decode(base64Url, Base64.DEFAULT)
-//        val bytes = Base64.decode(base64Url, Base64.URL_SAFE or Base64.NO_WRAP)
+        val bytes = Base64.decode(base64Url, Base64.URL_SAFE or Base64.NO_WRAP)
         val json = String(bytes, StandardCharsets.UTF_8)
         return JSONObject(json)
     }
